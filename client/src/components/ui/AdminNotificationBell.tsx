@@ -19,8 +19,11 @@ import {
 } from "lucide-react";
 
 import { toast } from "@/hooks/use-toast";
-import { AdminNotification } from "@/types";
+import { AdminNotification, Order } from "@/types";
 import { AdminFirebaseNotificationService } from "@/services/firebase-admin-notification-service";
+import { OrderDetails } from "../orders/order-details";
+import { AdminFirebaseOrderService } from "@/services/firebase-order-admin-service";
+import { FirebaseService } from "@/services/firebase-service";
 
 interface AdminNotificationBellProps {
   onNotificationCount?: (count: number) => void;
@@ -39,6 +42,8 @@ export function AdminNotificationBell({
   const [markingAsRead, setMarkingAsRead] = useState<string>("");
   const [showAll, setShowAll] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   // Constants for UI limits
   const INITIAL_DISPLAY_LIMIT = 8;
@@ -49,6 +54,59 @@ export function AdminNotificationBell({
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const notificationIdsRef = useRef<Set<string>>(new Set());
   const hasInitializedRef = useRef<boolean>(false);
+
+  // Order management functions
+  const handleUpdateOrderStatus = async (orderId: string, status: Order["status"]) => {
+    try {
+      await AdminFirebaseOrderService.updateOrderStatus(orderId, status);
+      toast({
+        title: "Success",
+        description: `Order status updated to ${status}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update order status",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+  const handleUpdatePaymentVerification = async (
+    orderId: string,
+    status: "verified" | "rejected",
+    reason?: string
+  ) => {
+    try {
+      await AdminFirebaseOrderService.updatePaymentVerification(orderId, status, reason);
+      toast({
+        title: "Success",
+        description: `Payment ${status} successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update payment verification",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  // Firebase real-time listeners
+  useEffect(() => {
+    const unsubscribers: (() => void)[] = [];
+
+    // Orders listener - Updated to use admin service
+    const unsubscribeOrders = AdminFirebaseOrderService.subscribeToOrders((ordersData) => {
+      setOrders(ordersData);
+    });
+    unsubscribers.push(unsubscribeOrders);
+
+    return () => {
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+    };
+  }, []);
 
   // Initialize audio
   useEffect(() => {
@@ -385,12 +443,16 @@ export function AdminNotificationBell({
   const handleNotificationItemClick = async (
     notification: AdminNotification
   ) => {
+    setSelectedOrder(orders.filter((item) => item.orderNumber === notification.orderNumber)[0])
+
     if (!notification.isRead) {
       setMarkingAsRead(notification.id);
       try {
         await AdminFirebaseNotificationService.markNotificationAsRead(
           notification.id
         );
+
+
       } catch (error) {
         // Silent error handling
       } finally {
@@ -577,9 +639,13 @@ export function AdminNotificationBell({
                           </div>
                         </div>
                       </div>
+
+
                     </div>
                   );
                 })}
+
+
 
                 {hasMoreNotifications && (
                   <div className="p-3 border-t border-border bg-muted/30">
@@ -607,6 +673,15 @@ export function AdminNotificationBell({
             )}
           </div>
         </div>
+      )}
+
+      {selectedOrder && (
+        <OrderDetails
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+          onStatusUpdate={handleUpdateOrderStatus}
+          onPaymentVerificationUpdate={handleUpdatePaymentVerification}
+        />
       )}
     </div>
   );

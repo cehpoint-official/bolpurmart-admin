@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  onSnapshot, 
-  query, 
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
   where,
   orderBy,
   getDocs,
@@ -29,20 +29,20 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Package, 
-  Building2, 
-  Users, 
-  ShoppingCart, 
-  BarChart3, 
-  Settings, 
-  Search, 
-  Bell, 
-  Moon, 
+import {
+  Package,
+  Building2,
+  Users,
+  ShoppingCart,
+  BarChart3,
+  Settings,
+  Search,
+  Bell,
+  Moon,
   Sun,
-  Plus, 
-  Edit, 
-  Trash2, 
+  Plus,
+  Edit,
+  Trash2,
   Menu,
   DollarSign,
   TrendingUp,
@@ -192,15 +192,15 @@ interface DashboardMetrics {
 
 // Enhanced constants
 const CATEGORIES = [
-  'Vegetables', 
-  'Groceries', 
-  'Medicine', 
-  'Snacks', 
-  'Biryani', 
-  'Fruits', 
-  'Dairy', 
-  'Bakery', 
-  'Beverages', 
+  'Vegetables',
+  'Groceries',
+  'Medicine',
+  'Snacks',
+  'Biryani',
+  'Fruits',
+  'Dairy',
+  'Bakery',
+  'Beverages',
   'Personal Care',
   'Household',
   'Electronics'
@@ -242,11 +242,11 @@ const AdminPanel: React.FC = () => {
     lastLogin: new Date(),
     createdAt: new Date()
   });
-  
+
   const [activeView, setActiveView] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  
+
   // Data states with better organization
   const [products, setProducts] = useState<Product[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -257,7 +257,7 @@ const AdminPanel: React.FC = () => {
     afternoon: ['Groceries', 'Medicine', 'Snacks', 'Personal Care', 'Household'],
     evening: ['Biryani', 'Snacks', 'Beverages']
   });
-  
+
   // Enhanced modal states
   const [modals, setModals] = useState({
     addProduct: false,
@@ -270,10 +270,10 @@ const AdminPanel: React.FC = () => {
     bulkActions: false,
     settings: false
   });
-  
+
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
-  
+
   // Enhanced form states
   const [forms, setForms] = useState({
     product: {
@@ -304,7 +304,7 @@ const AdminPanel: React.FC = () => {
       managedCategory: ''
     }
   });
-  
+
   // Enhanced filter and search states
   const [filters, setFilters] = useState({
     search: '',
@@ -314,7 +314,7 @@ const AdminPanel: React.FC = () => {
     vendor: '',
     priceRange: { min: '', max: '' }
   });
-  
+
   const [loading, setLoading] = useState({
     global: false,
     products: false,
@@ -322,7 +322,7 @@ const AdminPanel: React.FC = () => {
     orders: false,
     users: false
   });
-  
+
   const { toast } = useToast();
 
   // Enhanced Firebase real-time listeners with error handling
@@ -473,16 +473,16 @@ const AdminPanel: React.FC = () => {
     const monthlyRevenue = thisMonthOrders.reduce((sum, order) => sum + order.total, 0);
     const lastMonthRevenue = lastMonthOrders.reduce((sum, order) => sum + order.total, 0);
 
-    const pendingOrders = orders.filter(order => 
+    const pendingOrders = orders.filter(order =>
       ['pending', 'processing', 'confirmed', 'preparing'].includes(order.status)
     ).length;
 
-    const completedOrders = orders.filter(order => 
+    const completedOrders = orders.filter(order =>
       order.status === 'delivered'
     ).length;
 
-    const averageOrderValue = orders.length > 0 
-      ? orders.reduce((sum, order) => sum + order.total, 0) / orders.length 
+    const averageOrderValue = orders.length > 0
+      ? orders.reduce((sum, order) => sum + order.total, 0) / orders.length
       : 0;
 
     // Top selling category
@@ -493,15 +493,15 @@ const AdminPanel: React.FC = () => {
       return acc;
     }, {} as Record<string, number>);
 
-    const topSellingCategory = Object.entries(categoryStats).sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
+    const topSellingCategory = Object.entries(categoryStats).sort(([, a], [, b]) => b - a)[0]?.[0] || 'N/A';
 
     // Growth calculations
-    const revenueGrowth = lastMonthRevenue > 0 
-      ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
+    const revenueGrowth = lastMonthRevenue > 0
+      ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
       : 0;
 
-    const orderGrowth = lastMonthOrders.length > 0 
-      ? ((thisMonthOrders.length - lastMonthOrders.length) / lastMonthOrders.length) * 100 
+    const orderGrowth = lastMonthOrders.length > 0
+      ? ((thisMonthOrders.length - lastMonthOrders.length) / lastMonthOrders.length) * 100
       : 0;
 
     return {
@@ -523,21 +523,21 @@ const AdminPanel: React.FC = () => {
   // Enhanced filtered data with role-based access
   const filteredProducts = useMemo(() => {
     let filtered = products;
-    
+
     // Role-based filtering for sub-admins
     if (currentUser.role === 'sub-admin' && currentUser.managedCategory) {
       filtered = filtered.filter(p => p.category === currentUser.managedCategory);
     }
-    
+
     // Search filtering
     if (filters.search) {
-      filtered = filtered.filter(p => 
+      filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(filters.search.toLowerCase()) ||
         p.category.toLowerCase().includes(filters.search.toLowerCase()) ||
         p.vendorName?.toLowerCase().includes(filters.search.toLowerCase())
       );
     }
-    
+
     // Category filtering
     if (filters.category && filters.category !== 'all') {
       filtered = filtered.filter(p => p.category === filters.category);
@@ -550,34 +550,34 @@ const AdminPanel: React.FC = () => {
     if (filters.priceRange.max) {
       filtered = filtered.filter(p => p.price <= parseFloat(filters.priceRange.max));
     }
-    
+
     return filtered;
   }, [products, currentUser, filters]);
 
   const filteredOrders = useMemo(() => {
     let filtered = orders;
-    
+
     // Role-based filtering for sub-admins
     if (currentUser.role === 'sub-admin' && currentUser.managedCategory) {
-      filtered = filtered.filter(order => 
+      filtered = filtered.filter(order =>
         order.items.some(item => item.category === currentUser.managedCategory)
       );
     }
-    
+
     // Search filtering
     if (filters.search) {
-      filtered = filtered.filter(order => 
+      filtered = filtered.filter(order =>
         order.customerName.toLowerCase().includes(filters.search.toLowerCase()) ||
         order.id.toLowerCase().includes(filters.search.toLowerCase()) ||
         order.customerPhone.includes(filters.search)
       );
     }
-    
+
     // Status filtering
     if (filters.status && filters.status !== 'all') {
       filtered = filtered.filter(order => order.status === filters.status);
     }
-    
+
     return filtered;
   }, [orders, currentUser, filters]);
 
@@ -585,7 +585,7 @@ const AdminPanel: React.FC = () => {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(prev => ({ ...prev, products: true }));
-    
+
     try {
       const vendor = vendors.find(v => v.id === forms.product.vendorId);
       if (!vendor) {
@@ -646,7 +646,7 @@ const AdminPanel: React.FC = () => {
   const handleAddVendor = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(prev => ({ ...prev, vendors: true }));
-    
+
     try {
       const vendorData = {
         name: forms.vendor.name,
@@ -699,11 +699,11 @@ const AdminPanel: React.FC = () => {
 
   const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), { 
+      await updateDoc(doc(db, 'orders', orderId), {
         status,
         updatedAt: serverTimestamp()
       });
-      
+
       toast({
         title: "Success",
         description: `Order status updated to ${status}`
@@ -720,7 +720,7 @@ const AdminPanel: React.FC = () => {
 
   const handleDeleteProduct = async (productId: string) => {
     if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
-    
+
     try {
       await deleteDoc(doc(db, 'products', productId));
       toast({
@@ -766,13 +766,13 @@ const AdminPanel: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="relative h-60 flex items-end justify-around gap-2 px-4">
           {chartData.map((data, index) => (
             <div key={data.day} className="flex flex-col items-center gap-2 flex-1">
               <div className="flex items-end gap-1 h-48">
                 {/* Revenue Bar */}
-                <div 
+                <div
                   className="bg-primary rounded-t-lg w-6 transition-all duration-500 hover:opacity-80 cursor-pointer relative group"
                   style={{ height: `${(data.revenue / maxRevenue) * 180}px` }}
                   title={`Revenue: ₹${data.revenue.toLocaleString()}`}
@@ -781,9 +781,9 @@ const AdminPanel: React.FC = () => {
                     ₹{data.revenue.toLocaleString()}
                   </div>
                 </div>
-                
+
                 {/* Orders Bar */}
-                <div 
+                <div
                   className="bg-accent rounded-t-lg w-6 transition-all duration-500 hover:opacity-80 cursor-pointer relative group"
                   style={{ height: `${(data.orders / maxOrders) * 180}px` }}
                   title={`Orders: ${data.orders}`}
@@ -793,12 +793,12 @@ const AdminPanel: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               <span className="text-sm font-medium text-muted-foreground">{data.day}</span>
             </div>
           ))}
         </div>
-        
+
         <div className="mt-4 grid grid-cols-2 gap-4 text-center">
           <div className="p-3 bg-primary/10 rounded-lg">
             <p className="text-lg font-bold text-primary">₹{chartData.reduce((sum, d) => sum + d.revenue, 0).toLocaleString()}</p>
@@ -859,10 +859,9 @@ const AdminPanel: React.FC = () => {
 
   // Enhanced Sidebar Component
   const renderSidebar = () => (
-    <aside 
-      className={`${
-        sidebarCollapsed ? 'w-16' : 'w-72'
-      } transition-all duration-300 bg-card border-r border-border flex flex-col h-screen shadow-lg`}
+    <aside
+      className={`${sidebarCollapsed ? 'w-16' : 'w-72'
+        } transition-all duration-300 bg-card border-r border-border flex flex-col h-screen shadow-lg`}
       data-testid="sidebar"
     >
       {/* Enhanced Header */}
@@ -893,16 +892,15 @@ const AdminPanel: React.FC = () => {
         ].map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.id;
-          
+
           return (
             <div key={item.id}>
               <button
                 onClick={() => setActiveView(item.id)}
-                className={`w-full group relative flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                  isActive 
-                    ? 'bg-gradient-to-r from-primary to-accent text-white shadow-md shadow-primary/25' 
+                className={`w-full group relative flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
+                    ? 'bg-gradient-to-r from-primary to-accent text-white shadow-md shadow-primary/25'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
+                  }`}
                 data-testid={`nav-${item.id}`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'text-white' : ''}`} />
@@ -915,8 +913,8 @@ const AdminPanel: React.FC = () => {
                       </p>
                     </div>
                     {item.count !== undefined && (
-                      <Badge 
-                        variant={isActive ? 'secondary' : 'outline'} 
+                      <Badge
+                        variant={isActive ? 'secondary' : 'outline'}
                         className={`text-xs ${isActive ? 'bg-white/20 text-white border-white/30' : ''}`}
                       >
                         {item.count}
@@ -979,7 +977,7 @@ const AdminPanel: React.FC = () => {
             </Badge>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           {/* Enhanced Search */}
           <div className="relative hidden md:block">
@@ -1104,10 +1102,9 @@ const AdminPanel: React.FC = () => {
                         {metric.value}
                       </p>
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm flex items-center gap-1 ${
-                          metric.changeType === 'positive' ? 'text-green-600' :
-                          metric.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
-                        }`}>
+                        <span className={`text-sm flex items-center gap-1 ${metric.changeType === 'positive' ? 'text-green-600' :
+                            metric.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
+                          }`}>
                           {metric.changeType === 'positive' && <ArrowUp className="w-3 h-3" />}
                           {metric.changeType === 'negative' && <ArrowDown className="w-3 h-3" />}
                           {metric.change}
@@ -1262,8 +1259,8 @@ const AdminPanel: React.FC = () => {
           <p className="text-muted-foreground">Manage your product catalog and inventory</p>
         </div>
         <div className="flex items-center gap-3">
-          <Select 
-            value={filters.category} 
+          <Select
+            value={filters.category}
             onValueChange={(value) => setFilters(prev => ({ ...prev, category: value }))}
           >
             <SelectTrigger className="w-48">
@@ -1276,12 +1273,12 @@ const AdminPanel: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-          
+
           <Button variant="outline" className="gap-2">
             <Filter className="w-4 h-4" />
             Filters
           </Button>
-          
+
           <Dialog open={modals.addProduct} onOpenChange={(open) => setModals(prev => ({ ...prev, addProduct: open }))}>
             <DialogTrigger asChild>
               <Button className="gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90">
@@ -1311,10 +1308,10 @@ const AdminPanel: React.FC = () => {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="category">Category *</Label>
-                    <Select 
+                    <Select
                       value={forms.product.category}
                       onValueChange={(value) => setForms(prev => ({
                         ...prev,
@@ -1332,7 +1329,7 @@ const AdminPanel: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="price">Price (₹) *</Label>
                     <Input
@@ -1349,7 +1346,7 @@ const AdminPanel: React.FC = () => {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="stock">Stock Quantity *</Label>
                     <Input
@@ -1365,10 +1362,10 @@ const AdminPanel: React.FC = () => {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="vendor">Vendor *</Label>
-                    <Select 
+                    <Select
                       value={forms.product.vendorId}
                       onValueChange={(value) => setForms(prev => ({
                         ...prev,
@@ -1388,10 +1385,10 @@ const AdminPanel: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="timeSlot">Time Slot *</Label>
-                    <Select 
+                    <Select
                       value={forms.product.timeSlot}
                       onValueChange={(value) => setForms(prev => ({
                         ...prev,
@@ -1412,7 +1409,7 @@ const AdminPanel: React.FC = () => {
                     </Select>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea
@@ -1426,7 +1423,7 @@ const AdminPanel: React.FC = () => {
                     rows={3}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="tags">Tags (comma separated)</Label>
                   <Input
@@ -1439,7 +1436,7 @@ const AdminPanel: React.FC = () => {
                     placeholder="organic, fresh, premium"
                   />
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="available"
@@ -1451,17 +1448,17 @@ const AdminPanel: React.FC = () => {
                   />
                   <Label htmlFor="available">Available for sale</Label>
                 </div>
-                
+
                 <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => setModals(prev => ({ ...prev, addProduct: false }))}
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={loading.products}
                     className="bg-gradient-to-r from-primary to-accent"
                   >
@@ -1553,9 +1550,9 @@ const AdminPanel: React.FC = () => {
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-8 w-8 text-red-600 hover:text-red-700"
                           onClick={() => handleDeleteProduct(product.id)}
                         >
@@ -1572,13 +1569,13 @@ const AdminPanel: React.FC = () => {
                 <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No products found</h3>
                 <p className="text-muted-foreground mb-4">
-                  {filters.search || filters.category 
+                  {filters.search || filters.category
                     ? 'Try adjusting your filters to see more products'
                     : 'Get started by adding your first product'
                   }
                 </p>
                 {!filters.search && !filters.category && (
-                  <Button 
+                  <Button
                     onClick={() => setModals(prev => ({ ...prev, addProduct: true }))}
                     className="gap-2"
                   >
@@ -1632,7 +1629,7 @@ const AdminPanel: React.FC = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="location">Location *</Label>
                   <Input
@@ -1646,7 +1643,7 @@ const AdminPanel: React.FC = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="contactPerson">Contact Person *</Label>
                   <Input
@@ -1660,7 +1657,7 @@ const AdminPanel: React.FC = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone *</Label>
                   <Input
@@ -1674,7 +1671,7 @@ const AdminPanel: React.FC = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -1688,7 +1685,7 @@ const AdminPanel: React.FC = () => {
                     placeholder="Enter email address"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="commission">Commission (%) *</Label>
                   <Input
@@ -1706,10 +1703,10 @@ const AdminPanel: React.FC = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="specialty">Specialty *</Label>
-                  <Select 
+                  <Select
                     value={forms.vendor.specialty}
                     onValueChange={(value) => setForms(prev => ({
                       ...prev,
@@ -1728,7 +1725,7 @@ const AdminPanel: React.FC = () => {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="address">Full Address *</Label>
                 <Textarea
@@ -1743,17 +1740,17 @@ const AdminPanel: React.FC = () => {
                   required
                 />
               </div>
-              
+
               <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => setModals(prev => ({ ...prev, addVendor: false }))}
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={loading.vendors}
                   className="bg-gradient-to-r from-primary to-accent"
                 >
@@ -1806,7 +1803,7 @@ const AdminPanel: React.FC = () => {
                   </div>
                 )}
               </div>
-              
+
               <div className="flex items-center justify-between pt-3 border-t border-border">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-foreground">{vendor.commission}%</p>
@@ -1821,7 +1818,7 @@ const AdminPanel: React.FC = () => {
                   <p className="text-xs text-muted-foreground">Orders</p>
                 </div>
               </div>
-              
+
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" size="sm" className="flex-1">
                   <Eye className="w-4 h-4 mr-1" />
@@ -1845,7 +1842,7 @@ const AdminPanel: React.FC = () => {
             <p className="text-muted-foreground mb-4">
               Start building your supplier network by adding vendors
             </p>
-            <Button 
+            <Button
               onClick={() => setModals(prev => ({ ...prev, addVendor: true }))}
               className="gap-2"
             >
@@ -1879,11 +1876,11 @@ const AdminPanel: React.FC = () => {
             </Button>
           </div>
         </div>
-        
+
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
-          <Select 
-            value={filters.status} 
+          <Select
+            value={filters.status}
             onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
           >
             <SelectTrigger className="w-48">
@@ -1898,7 +1895,7 @@ const AdminPanel: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-          
+
           <Select>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Filter by date" />
@@ -1910,11 +1907,11 @@ const AdminPanel: React.FC = () => {
               <SelectItem value="month">This Month</SelectItem>
             </SelectContent>
           </Select>
-          
+
           {filters.status && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setFilters(prev => ({ ...prev, status: '' }))}
               className="gap-1"
             >
@@ -2026,7 +2023,7 @@ const AdminPanel: React.FC = () => {
                 <ShoppingCart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No orders found</h3>
                 <p className="text-muted-foreground">
-                  {filters.search || filters.status 
+                  {filters.search || filters.status
                     ? 'Try adjusting your filters to see more orders'
                     : 'Orders will appear here once customers start placing them'
                   }
@@ -2054,7 +2051,7 @@ const AdminPanel: React.FC = () => {
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="time-rules" className="space-y-6">
           <Card>
             <CardHeader>
@@ -2088,7 +2085,7 @@ const AdminPanel: React.FC = () => {
                                 category
                               ];
                             } else {
-                              newRules[slot.value as keyof TimeRules] = 
+                              newRules[slot.value as keyof TimeRules] =
                                 newRules[slot.value as keyof TimeRules].filter(cat => cat !== category);
                             }
                             setTimeRules(newRules);
@@ -2104,7 +2101,7 @@ const AdminPanel: React.FC = () => {
                 </div>
               ))}
               <div className="pt-4 border-t border-border">
-                <Button 
+                <Button
                   onClick={async () => {
                     try {
                       await setDoc(doc(db, 'settings', 'timeRules'), timeRules);
@@ -2129,7 +2126,7 @@ const AdminPanel: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="notifications">
           <Card>
             <CardHeader>
@@ -2165,7 +2162,7 @@ const AdminPanel: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="integrations">
           <Card>
             <CardHeader>
@@ -2186,7 +2183,7 @@ const AdminPanel: React.FC = () => {
                   </p>
                   <Button variant="outline" size="sm">Connect</Button>
                 </div>
-                
+
                 <div className="p-4 border border-border rounded-lg">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold">SMS Service</h3>
@@ -2201,7 +2198,7 @@ const AdminPanel: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="security">
           <Card>
             <CardHeader>
@@ -2389,7 +2386,7 @@ const AdminPanel: React.FC = () => {
                   <div key={category} className="flex items-center gap-4">
                     <div className="w-20 text-sm font-medium">{category}</div>
                     <div className="flex-1 bg-muted rounded-full h-3">
-                      <div 
+                      <div
                         className="bg-primary h-3 rounded-full transition-all duration-500"
                         style={{ width: `${percentage}%` }}
                       ></div>

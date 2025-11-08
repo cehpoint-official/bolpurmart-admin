@@ -242,11 +242,11 @@ function AdminPanelContent() {
 
     const revenueGrowth =
       lastMonthOrders.length > 0
-        ? ((thisMonthOrders.reduce((sum, order) => 
-            order.status === "delivered" ? sum + order.total : sum, 0) - 
-            lastMonthOrders.reduce((sum, order) => 
+        ? ((thisMonthOrders.reduce((sum, order) =>
+          order.status === "delivered" ? sum + order.total : sum, 0) -
+          lastMonthOrders.reduce((sum, order) =>
             order.status === "delivered" ? sum + order.total : sum, 0)) /
-            lastMonthOrders.reduce((sum, order) => 
+          lastMonthOrders.reduce((sum, order) =>
             order.status === "delivered" ? sum + order.total : sum, 0)) * 100
         : 0;
 
@@ -295,8 +295,8 @@ function AdminPanelContent() {
     const completionRate =
       orders.length > 0
         ? Math.round(
-            (orders.filter((order) => order.status === "delivered").length / orders.length) * 100
-          )
+          (orders.filter((order) => order.status === "delivered").length / orders.length) * 100
+        )
         : 0;
 
     return {
@@ -359,8 +359,8 @@ function AdminPanelContent() {
   };
 
   const handleUpdatePaymentVerification = async (
-    orderId: string, 
-    status: "verified" | "rejected", 
+    orderId: string,
+    status: "verified" | "rejected",
     reason?: string
   ) => {
     try {
@@ -800,7 +800,7 @@ function AdminPanelContent() {
   // Render main content based on active view
   const renderMainContent = () => {
     switch (activeView) {
-       case "dashboard":
+      case "dashboard":
         return (
           <Dashboard
             metrics={dashboardMetrics}

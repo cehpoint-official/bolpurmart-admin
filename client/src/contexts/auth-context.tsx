@@ -1,13 +1,21 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { FirebaseService } from "@/services/firebase-service"
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  type User as FirebaseUser
+} from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/types"
 
 interface AuthContextType {
   user: User | null
+  firebaseUser: FirebaseUser | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   isAuthenticated: boolean
 }
 
@@ -15,40 +23,48 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
   useEffect(() => {
-    // Check for stored user data on mount
-    const storedUser = localStorage.getItem("admin-user")
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser)
-        setUser(userData)
-      } catch (error) {
-        localStorage.removeItem("admin-user")
-      }
-    }
+    const unsubscribe = onAuthStateChanged(auth, async (fUser) => {
+      setFirebaseUser(fUser);
 
-    setLoading(false)
+      if (fUser) {
+        try {
+          // Fetch additional user data from Firestore if needed
+          const userDoc = await getDoc(doc(db, "users", fUser.uid));
+          if (userDoc.exists()) {
+            setUser({ id: userDoc.id, ...userDoc.data() } as User);
+          } else {
+            // Fallback for cases where firestore doc might not exist yet
+            setUser({
+              id: fUser.uid,
+              email: fUser.email || "",
+              role: "admin" // Default role
+            } as any);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [])
 
   const login = async (email: string, password: string) => {
     setLoading(true)
     try {
-      const userData = await FirebaseService.authenticateUser(email, password)
-
-      if (userData) {
-        setUser(userData)
-        localStorage.setItem("admin-user", JSON.stringify(userData))
-
-        toast({
-          title: "Welcome back!",
-          description: "Successfully logged in to admin panel",
-        })
-      } else {
-        throw new Error("Invalid email or password")
-      }
+      await signInWithEmailAndPassword(auth, email, password);
+      toast({
+        title: "Welcome back!",
+        description: "Successfully logged in to admin panel",
+      })
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -61,21 +77,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("admin-user")
-    toast({
-      title: "Logged out",
-      description: "Successfully logged out from admin panel",
-    })
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      toast({
+        title: "Logged out",
+        description: "Successfully logged out from admin panel",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Logout Failed",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
   }
 
   const value = {
     user,
+    firebaseUser,
     loading,
     login,
     logout,
-    isAuthenticated: !!user,
+    isAuthenticated: !!firebaseUser,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

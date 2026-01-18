@@ -19,8 +19,8 @@ export function LoginPage() {
     try {
       await login(email, password)
     } catch (error) {
-      // Error is handled in the auth context
-      console.log(error);
+      // Error is handled in the auth context via toasts
+      console.error("Login component error:", error);
     }
   }
 

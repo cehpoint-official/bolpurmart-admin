@@ -237,40 +237,7 @@ export class FirebaseService {
     );
   }
 
-  // Authentication methods
-  static async authenticateUser(
-    email: string,
-    password: string
-  ): Promise<User | null> {
-    try {
-      const q = query(
-        collection(db, "users"),
-        where("email", "==", email),
-        where("isActive", "==", true)
-      );
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data() as User;
-
-        //  Check against the stored password in database
-        if (password === userData.password) {
-          // Update last login
-          await this.update("users", userDoc.id, {
-            lastLogin: new Date().toISOString(),
-          });
-
-          //  Put id after the spread to avoid overwriting
-          return { ...userData, id: userDoc.id } as User;
-        }
-      }
-      return null;
-    } catch (error) {
-      console.error("Error authenticating user:", error);
-      throw error;
-    }
-  }
+  // Authentication is now handled by Firebase Auth in auth-context.tsx
 
   // Time Rules methods
   static async getTimeRules(): Promise<TimeRulesConfig> {

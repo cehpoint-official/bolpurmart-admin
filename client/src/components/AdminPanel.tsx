@@ -235,7 +235,7 @@ const AdminPanel: React.FC = () => {
   const [currentUser] = useState<User>({
     id: '1',
     name: 'System Administrator',
-    email: 'admin@bolpurmart.com',
+    email: 'admin@pakurmart.com',
     role: 'admin',
     avatar: '',
     isActive: true,
@@ -427,7 +427,7 @@ const AdminPanel: React.FC = () => {
 
   // Enhanced theme management
   useEffect(() => {
-    const savedTheme = localStorage.getItem('bolpurmart-theme');
+    const savedTheme = localStorage.getItem('pakurmart-theme');
     if (savedTheme) {
       setDarkMode(savedTheme === 'dark');
     }
@@ -436,10 +436,10 @@ const AdminPanel: React.FC = () => {
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('bolpurmart-theme', 'dark');
+      localStorage.setItem('pakurmart-theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('bolpurmart-theme', 'light');
+      localStorage.setItem('pakurmart-theme', 'light');
     }
   }, [darkMode]);
 

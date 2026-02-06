@@ -11,6 +11,7 @@ import {
   writeBatch,
   addDoc,
   where,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase"; // Your admin panel firebase config
 import type { Order } from "@/types"; // Your admin panel types
@@ -18,6 +19,7 @@ import type { Order } from "@/types"; // Your admin panel types
 export class AdminFirebaseOrderService {
   private static ordersCollection = "orders";
   private static notificationsCollection = "notifications";
+  private static processedOrderIds = new Set<string>();
 
   // Subscribe to all orders for admin dashboard
   static subscribeToOrders(callback: (orders: Order[]) => void): () => void {
@@ -26,6 +28,51 @@ export class AdminFirebaseOrderService {
 
     return onSnapshot(q, (snapshot) => {
       const orders: Order[] = [];
+
+      // Detect new orders and create admin notifications
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          const orderId = change.doc.id;
+          const data = change.doc.data();
+
+          console.log('🆕 New order detected:', orderId, data.orderNumber);
+
+          // Create admin notification for new orders
+          if (!this.processedOrderIds.has(orderId)) {
+            this.processedOrderIds.add(orderId);
+
+            // Check order time - create notification for orders within last 10 minutes
+            const orderTime = data.createdAt
+              ? typeof data.createdAt === "string"
+                ? new Date(data.createdAt)
+                : data.createdAt.toDate()
+              : new Date();
+
+            const now = Date.now();
+            const timeDiff = now - orderTime.getTime();
+            const thirtyMinutes = 30 * 60 * 1000;
+
+            console.log('⏱️ [DEBUG] Current Time:', new Date(now).toISOString());
+            console.log('⏰ [DEBUG] Order Time:', orderTime.toISOString());
+            console.log('⏳ [DEBUG] Time diff (min):', Math.floor(timeDiff / 60000));
+            console.log('✅ [DEBUG] Within 30 min window?', timeDiff < thirtyMinutes);
+
+            if (timeDiff < thirtyMinutes) {
+              console.log('📢 Creating notification for new order:', data.orderNumber);
+              this.createNewOrderNotification({
+                id: orderId,
+                ...data
+              }).catch(err => {
+                console.error('❌ Failed to create notification:', err);
+              });
+            } else {
+              console.log('⏭️ Skipping old order (beyond 30 min window):', data.orderNumber, 'Age:', Math.floor(timeDiff / 60000), 'minutes');
+            }
+          } else {
+            console.log('⏭️ Order already processed:', orderId);
+          }
+        }
+      });
 
       snapshot.forEach((doc) => {
         const data = doc.data();
@@ -107,7 +154,7 @@ export class AdminFirebaseOrderService {
     try {
       const orderRef = doc(db, this.ordersCollection, orderId);
       const orderDoc = await getDoc(orderRef);
-      
+
       if (!orderDoc.exists()) {
         throw new Error("Order not found");
       }
@@ -176,7 +223,7 @@ export class AdminFirebaseOrderService {
     try {
       const orderRef = doc(db, this.ordersCollection, orderId);
       const orderDoc = await getDoc(orderRef);
-      
+
       if (!orderDoc.exists()) {
         throw new Error("Order not found");
       }
@@ -228,10 +275,10 @@ export class AdminFirebaseOrderService {
   ): Promise<void> {
     try {
       // Create status-specific messages
-      const statusMessages: Record<string, { 
-        title: string; 
-        message: string; 
-        type: "order_update" | "delivery_update"; 
+      const statusMessages: Record<string, {
+        title: string;
+        message: string;
+        type: "order_update" | "delivery_update";
         priority: "low" | "normal" | "high";
       }> = {
         confirmed: {
@@ -311,16 +358,15 @@ export class AdminFirebaseOrderService {
 
       const notificationData = {
         type: isVerified ? "payment_verified" : "payment_rejected",
-        title: isVerified 
-          ? "Payment Verified! ✅" 
+        title: isVerified
+          ? "Payment Verified! ✅"
           : "Payment Verification Failed ❌",
         message: isVerified
           ? `Your payment for order #${orderData.orderNumber} has been verified successfully. Total: ₹${orderData.total}`
-          : `Your payment for order #${orderData.orderNumber} could not be verified. ${
-              rejectionReason
-                ? `Reason: ${rejectionReason}`
-                : "Please contact support for assistance."
-            }`,
+          : `Your payment for order #${orderData.orderNumber} could not be verified. ${rejectionReason
+            ? `Reason: ${rejectionReason}`
+            : "Please contact support for assistance."
+          }`,
         orderId: orderData.id || "",
         orderNumber: orderData.orderNumber,
         customerId: orderData.customerId,
@@ -426,11 +472,11 @@ export class AdminFirebaseOrderService {
       for (const update of updates) {
         const orderDoc = await getDoc(doc(db, this.ordersCollection, update.orderId));
         if (orderDoc.exists()) {
-          orderDataArray.push({ 
-            id: update.orderId, 
+          orderDataArray.push({
+            id: update.orderId,
             verificationStatus: update.verificationStatus,
             rejectionReason: update.rejectionReason,
-            ...orderDoc.data() 
+            ...orderDoc.data()
           });
         }
       }
@@ -680,6 +726,42 @@ export class AdminFirebaseOrderService {
     } catch (error) {
       console.error("Error searching orders:", error);
       return [];
+    }
+  }
+
+  // Create admin notification for new order
+  private static async createNewOrderNotification(
+    orderData: any
+  ): Promise<void> {
+    try {
+      console.log('Creating new order notification for order:', orderData.orderNumber);
+
+      const notificationData = {
+        type: "new_order",
+        title: "🎉 New Order Received!",
+        message: `Order #${orderData.orderNumber} from ${orderData.customerName} - ₹${orderData.total}`,
+        orderId: orderData.id || "",
+        orderNumber: orderData.orderNumber,
+        customerId: orderData.customerId,
+        customerName: orderData.customerName,
+        customerEmail: orderData.customerEmail,
+        customerPhone: orderData.customerPhone,
+        total: orderData.total,
+        paymentMethod: orderData.paymentMethod,
+        status: orderData.status,
+        targetAudience: "admin",
+        isRead: false,
+        priority: "high",
+        createdAt: new Date(),
+      };
+
+      // Use orderId as the document ID to ensure idempotency with Cloud Functions
+      const notificationRef = doc(collection(db, this.notificationsCollection), orderData.id);
+      await setDoc(notificationRef, notificationData, { merge: true });
+
+      console.log(`✅ Admin notification created/updated for new order ${orderData.orderNumber}, ID: ${orderData.id}`);
+    } catch (error) {
+      console.error("❌ Error creating new order notification:", error);
     }
   }
 }

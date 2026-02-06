@@ -216,7 +216,7 @@ export function Sidebar({
               </div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">
-                  Bolpur Mart
+                  Pakur Mart
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   Enterprise Admin Panel

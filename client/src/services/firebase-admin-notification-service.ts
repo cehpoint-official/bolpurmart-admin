@@ -66,6 +66,8 @@ export class AdminFirebaseNotificationService {
       limit(50)
     );
 
+    console.log('📡 Subscribing to admin notifications...');
+
     return onSnapshot(
       q,
       (querySnapshot) => {
@@ -82,9 +84,33 @@ export class AdminFirebaseNotificationService {
               : new Date(),
           } as AdminNotification);
         });
+
+        console.log(`📬 Received ${notifications.length} admin notifications`);
+        console.log(`📭 Unread notifications: ${notifications.filter(n => !n.isRead).length}`);
+
+        if (notifications.length > 0) {
+          console.log('Latest notification:', notifications[0]);
+        }
+
         callback(notifications);
       },
-      onError
+      (error) => {
+        console.error('❌ Error in notification subscription:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+
+        if (error.code === 'failed-precondition') {
+          console.error('🔍 FIRESTORE INDEX REQUIRED!');
+          console.error('Create a composite index for:');
+          console.error('Collection: notifications');
+          console.error('Fields: targetAudience (ASC), createdAt (DESC)');
+          console.error('Click the link in the console to create the index automatically');
+        }
+
+        if (onError) {
+          onError(error as Error);
+        }
+      }
     );
   }
 
@@ -142,7 +168,7 @@ export class AdminFirebaseNotificationService {
       await addDoc(notificationsRef, {
         ...notification,
         targetAudience: "admin",
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
       });
     } catch (error) {
       console.error("Error creating admin notification:", error);

@@ -89,6 +89,7 @@ function AdminPanelContent() {
 
   // Initialize data with proper loading states
   useEffect(() => {
+    if (!user) return;
     const initializeData = async () => {
       try {
         const rulesData = await FirebaseService.getTimeRules();
@@ -107,10 +108,11 @@ function AdminPanelContent() {
     };
 
     initializeData();
-  }, [toast]);
+  }, [toast, user]);
 
   // Firebase real-time listeners
   useEffect(() => {
+    if (!user) return;
     const unsubscribers: (() => void)[] = [];
 
     // Products listener
@@ -185,7 +187,7 @@ function AdminPanelContent() {
     return () => {
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
-  }, []);
+  }, [user]);
 
   // Update global loading state
   useEffect(() => {
@@ -205,6 +207,7 @@ function AdminPanelContent() {
   ]);
 
   useEffect(() => {
+    if (!user) return;
     const unsubscribePartners = FirebaseService.subscribeToCollection<DeliveryPartner>(
       "deliveryPartners",
       (partnersData) => {
@@ -216,9 +219,10 @@ function AdminPanelContent() {
     return () => {
       unsubscribePartners();
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
+    if (!user) return;
     const unsubscribeDeliveries = FirebaseService.subscribeToCollection<any>(
       "deliveries",
       (deliveriesData) => {
@@ -228,7 +232,7 @@ function AdminPanelContent() {
     );
 
     return () => unsubscribeDeliveries();
-  }, []);
+  }, [user]);
 
 
   // CREATE

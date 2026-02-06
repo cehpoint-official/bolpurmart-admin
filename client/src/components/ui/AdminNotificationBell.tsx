@@ -24,6 +24,10 @@ import { AdminFirebaseNotificationService } from "@/services/firebase-admin-noti
 import { OrderDetails } from "../orders/order-details";
 import { AdminFirebaseOrderService } from "@/services/firebase-order-admin-service";
 import { FirebaseService } from "@/services/firebase-service";
+import { FCMService } from "@/services/fcm-service";
+import { useAuth } from "@/hooks/use-auth";
+import { onSnapshot, collection } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface AdminNotificationBellProps {
   onNotificationCount?: (count: number) => void;
@@ -44,6 +48,9 @@ export function AdminNotificationBell({
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [fcmInitialized, setFcmInitialized] = useState(false);
+
+  const { user } = useAuth();
 
   // Constants for UI limits
   const INITIAL_DISPLAY_LIMIT = 8;
@@ -93,20 +100,91 @@ export function AdminNotificationBell({
     }
   };
 
-  // Firebase real-time listeners
+  // Debug: Monitor notifications collection broadly
   useEffect(() => {
-    const unsubscribers: (() => void)[] = [];
-
-    // Orders listener - Updated to use admin service
-    const unsubscribeOrders = AdminFirebaseOrderService.subscribeToOrders((ordersData) => {
-      setOrders(ordersData);
-    });
-    unsubscribers.push(unsubscribeOrders);
-
-    return () => {
-      unsubscribers.forEach((unsubscribe) => unsubscribe());
-    };
+    try {
+      console.log('🔍 [DEBUG] Starting broad notifications monitor...');
+      const notificationsColl = collection(db, "notifications");
+      const unsub = onSnapshot(collection(db, "notifications"), (snap) => {
+        console.log(`📊 [DEBUG] Total RAW notifications in DB: ${snap.size}`);
+        if (snap.size > 0) {
+          console.log('📄 [DEBUG] Most recent RAW notifications:');
+          snap.docs.slice(0, 3).forEach(d => {
+            const data = d.data();
+            console.log(`   - ID: ${d.id}, Target: ${data.targetAudience}, Type: ${data.type}`);
+          });
+        } else {
+          console.log('📄 [DEBUG] No notifications found in the entire collection.');
+        }
+      }, (err) => {
+        console.error('❌ [DEBUG] Error in broad monitor:', err);
+      });
+      return unsub;
+    } catch (e) {
+      console.error('❌ [DEBUG] Failed to setup broad monitor:', e);
+    }
   }, []);
+
+  // Initialize FCM for push notifications
+  useEffect(() => {
+    const initializeFCM = async () => {
+      if (fcmInitialized || !user) return;
+
+      try {
+        console.log('🔔 Initializing FCM for admin notifications...');
+
+        // Check if notifications are supported
+        if (!FCMService.isNotificationSupported()) {
+          console.warn('Push notifications are not supported in this browser');
+          return;
+        }
+
+        // Check current permission status
+        const permissionStatus = FCMService.getPermissionStatus();
+        console.log('Current notification permission:', permissionStatus);
+
+        // Request permission and get token
+        const token = await FCMService.requestPermissionAndGetToken();
+
+        if (token) {
+          console.log('✅ FCM token obtained:', token.substring(0, 20) + '...');
+
+          // Save token to admin document
+          await FCMService.saveAdminFCMToken(user.id, token);
+          console.log('✅ FCM token saved for admin');
+
+          // Setup foreground message listener
+          const unsubscribe = FCMService.setupForegroundMessageListener((payload) => {
+            console.log('📬 Foreground FCM message received:', payload);
+
+            // Play notification sound
+            playNotificationSound();
+
+            // Show toast notification
+            toast({
+              title: payload.notification?.title || 'New Notification',
+              description: payload.notification?.body || '',
+              variant: 'default',
+            });
+          });
+
+          setFcmInitialized(true);
+          console.log('✅ FCM initialized successfully');
+
+          return () => {
+            unsubscribe();
+          };
+        } else {
+          console.log('❌ Failed to get FCM token');
+        }
+      } catch (error) {
+        console.error('❌ Error initializing FCM:', error);
+      }
+    };
+
+    initializeFCM();
+  }, [user, fcmInitialized]);
+
 
   // Initialize audio
   useEffect(() => {
@@ -336,6 +414,7 @@ export function AdminNotificationBell({
   // Get admin notification icon
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case "new_order":
       case "admin_order_placed":
       case "order_update":
         return ShoppingCart;
@@ -357,6 +436,7 @@ export function AdminNotificationBell({
   // Get admin notification icon color (using CSS variables for dark mode support)
   const getNotificationIconColor = (type: string) => {
     switch (type) {
+      case "new_order":
       case "admin_order_placed":
         return "text-accent";
       case "new_user_registered":
@@ -386,12 +466,25 @@ export function AdminNotificationBell({
 
   // Load admin notifications
   useEffect(() => {
+    // Wait for user to be authenticated before subscribing
+    // The security rules require an authenticated user
+    if (!user) {
+      console.log('⏳ [DEBUG] Waiting for user to be authenticated before subscribing to notifications...');
+      return;
+    }
+
     if (!hasInitializedRef.current) {
       setIsLoading(true);
       hasInitializedRef.current = true;
     }
 
-    const unsubscribe =
+    console.log('✅ [DEBUG] User authenticated, starting admin notification subscription...');
+
+    const unsubscribeOrders = AdminFirebaseOrderService.subscribeToOrders((ordersData) => {
+      setOrders(ordersData);
+    });
+
+    const unsubscribeNotifications =
       AdminFirebaseNotificationService.subscribeToAdminNotifications(
         (newNotifications) => {
           const limitedNotifications = newNotifications.slice(
@@ -411,19 +504,29 @@ export function AdminNotificationBell({
             onNotificationCount(newUnreadCount);
           }
         },
-        (error) => {
+        (error: any) => {
+          console.error('❌ [DEBUG] Notification subscription failed:', error);
           setIsLoading(false);
+
+          if (error.code === 'failed-precondition') {
+            toast({
+              title: "Firestore Index Required",
+              description: "Please check your browser console for the index creation link.",
+              variant: "destructive",
+            });
+          }
+
+          if (error.message.includes('permission')) {
+            console.warn('⚠️ [DEBUG] Permission denied. This usually happens if the user session is still initializing.');
+          }
         }
       );
 
-    unsubscribeRef.current = unsubscribe;
-
     return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-      }
+      unsubscribeOrders();
+      unsubscribeNotifications();
     };
-  }, [onNotificationCount]);
+  }, [onNotificationCount, user]);
 
   // Handle notification bell click
   const handleNotificationClick = async () => {

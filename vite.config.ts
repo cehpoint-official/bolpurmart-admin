@@ -19,5 +19,6 @@ export default defineConfig({
     sourcemap: false,
     minify: "esbuild", // Changed from 'terser' to 'esbuild'
   },
+  envDir: import.meta.dirname,
   base: "/",
 });

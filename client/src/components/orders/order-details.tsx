@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -216,8 +217,11 @@ export function OrderDetails({
   const isUpiPayment = localOrder.paymentMethod === "upi_online";
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" aria-describedby="order-details-description">
+          <DialogDescription id="order-details-description">
+            Detailed information about the order, including items, timeline, customer, payment, and delivery details.
+          </DialogDescription>
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -812,7 +816,10 @@ export function OrderDetails({
           localOrder.paymentDetails &&
           "paymentScreenshot" in localOrder.paymentDetails && (
             <Dialog open={showPaymentImage} onOpenChange={setShowPaymentImage}>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl" aria-describedby="payment-screenshot-description">
+                <DialogDescription id="payment-screenshot-description">
+                  Screenshot of the payment made for this order.
+                </DialogDescription>
                 <DialogHeader>
                   <DialogTitle>Payment Screenshot</DialogTitle>
                 </DialogHeader>

@@ -31,8 +31,8 @@ export class AdminFirebaseDeliveryPartnerService {
                 partners.push({
                     id: doc.id,
                     ...d,
-                    createdAt: d.createdAt?.toDate(),
-                    updatedAt: d.updatedAt?.toDate(),
+                    createdAt: d.createdAt && typeof d.createdAt.toDate === "function" ? d.createdAt.toDate() : d.createdAt,
+                    updatedAt: d.updatedAt && typeof d.updatedAt.toDate === "function" ? d.updatedAt.toDate() : d.updatedAt,
                 });
             });
 
@@ -70,8 +70,8 @@ export class AdminFirebaseDeliveryPartnerService {
         return {
             id: snap.id,
             ...d,
-            createdAt: d.createdAt?.toDate(),
-            updatedAt: d.updatedAt?.toDate(),
+            createdAt: d.createdAt && typeof d.createdAt.toDate === "function" ? d.createdAt.toDate() : d.createdAt,
+            updatedAt: d.updatedAt && typeof d.updatedAt.toDate === "function" ? d.updatedAt.toDate() : d.updatedAt,
         };
     }
 
@@ -138,12 +138,11 @@ export class AdminFirebaseDeliveryPartnerService {
 
         return snap.docs.map((doc) => {
             const d = doc.data();
-
             return {
                 id: doc.id,
                 ...d,
-                createdAt: d.createdAt?.toDate(),
-                updatedAt: d.updatedAt?.toDate(),
+                createdAt: d.createdAt && typeof d.createdAt.toDate === "function" ? d.createdAt.toDate() : d.createdAt,
+                updatedAt: d.updatedAt && typeof d.updatedAt.toDate === "function" ? d.updatedAt.toDate() : d.updatedAt,
             };
         });
     }

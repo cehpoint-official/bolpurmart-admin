@@ -43,6 +43,20 @@ graph TD
     F --> K[(Users/Roles)]
 ```
 
+### Order & Notification Flow
+The following flowchart illustrates how a new order triggers system-wide updates:
+
+```mermaid
+graph TD
+    A[Customer Places Order] --> B{Firestore: orders collection}
+    B -->|onCreate Trigger| C[Cloud Function: sendNewOrderNotification]
+    C --> D[FCM: Send push to Admin Devices]
+    C --> E[Firestore: Write to notifications collection]
+    D --> F[Admin App: Browser Notification]
+    E --> G[Admin Dashboard: Bell Icon Update]
+    G --> H[Admin views & manages Order]
+```
+
 ---
 
 ## 🔄 Order Lifecycle Workflow
@@ -58,6 +72,16 @@ stateDiagram-v2
     Confirmed --> Cancelled: Stock issue
 ```
 
+### Order Status Update Workflow
+```mermaid
+graph LR
+    A[Admin Updates Status] --> B[Firestore: Update order doc]
+    B --> C{onUpdate Trigger}
+    C --> D[Cloud Function: sendOrderStatusUpdate]
+    D --> E[FCM: Notification to Admin/User]
+    E --> F[Status Sync across Apps]
+```
+
 ---
 
 ## 📂 Project Structure
@@ -71,8 +95,11 @@ bolpurmart-admin/
 │   │   ├── contexts/       # Global State (Auth, Theme)
 │   │   ├── hooks/          # Custom Hooks (Toasts, Auth)
 │   │   ├── types/          # TypeScript Interfaces
-│   │   └── pages/          # Top-level Views (AdminPanel, Login)
+│   │   ├── pages/          # Top-level Views (AdminPanel, Login)
+│   │   └── lib/            # Configuration & Utils
 │   └── public/             # Static Assets & Service Workers
+├── functions/              # Firebase Cloud Functions
+│   └── index.js            # Backend triggers (FCM logic)
 ├── firebase.json           # Firebase Hosting/Rules Config
 ├── tailwind.config.ts      # Styling System
 └── package.json            # Scripts & Dependencies
@@ -85,26 +112,34 @@ bolpurmart-admin/
 ### Prerequisites
 - Node.js (v18+)
 - npm or yarn
+- Firebase CLI (`npm install -g firebase-tools`)
 
 ### Local Setup
 
-1. **Clone and Install**
-   ```bash
-   npm install
-   ```
+1.  **Clone and Install**
+    ```bash
+    npm install
+    cd functions && npm install && cd ..
+    ```
 
-2. **Environment Configuration**
-   Create a `.env` file in the `client/` directory based on `.env.example`:
-   ```env
-   VITE_FIREBASE_API_KEY=your_key
-   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=your_project_id
-   ```
+2.  **Environment Configuration**
+    Create a `.env` file in the `client/` directory based on `.env.example`:
+    ```env
+    VITE_FIREBASE_API_KEY=your_key
+    VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+    VITE_FIREBASE_PROJECT_ID=your_project_id
+    # ... add other variables
+    ```
 
-3. **Run Development Server**
-   ```bash
-   npm run dev
-   ```
+3.  **Run Development Server**
+    ```bash
+    npm run dev
+    ```
+
+4.  **Deploy Functions**
+    ```bash
+    firebase deploy --only functions
+    ```
 
 ### Deployment
 The project is configured for **Firebase Hosting**.
@@ -129,4 +164,13 @@ firebase deploy
 - **Automated Notifications**: FCM-powered alerts for new transactions.
 
 ---
-*Generated for Pakur Mart*
+
+## 💡 Implementation Highlights
+
+- **FCM Service Worker**: Implemented a robust service worker in the client for reliable background notifications even when the app is closed.
+- **Idempotent Notifications**: Cloud functions use the `orderId` as the document ID for notifications to prevent duplicate alerts.
+- **Type Safety**: End-to-end type safety using Zod schemas for order data and product models.
+
+---
+
+Made with ❤️ for **Pakur Mart**.

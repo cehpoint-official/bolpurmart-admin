@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "bolpur-mart-app"
-  }
+    "default": "pakur-mart"
+  },
+  "targets": {},
+  "etags": {}
 }
